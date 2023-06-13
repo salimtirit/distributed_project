@@ -1,3 +1,4 @@
+super: inetd client
 inetd: inetd.c square cube
 	gcc inetd.c -lpthread -o inetd
 square: square.c
