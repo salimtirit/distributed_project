@@ -110,7 +110,6 @@ void cleanup_child(int signal)
         {
             if (child_pids[i] == pid)
             {
-                printf("Child #%d terminated\n", i + 1);
                 child_pids[i] = 0;
                 break;
             }
