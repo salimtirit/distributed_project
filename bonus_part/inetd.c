@@ -36,14 +36,13 @@ void *listenPorts(idAndSocket *vargp)
         {
             printf("(inetd) Connection request to square service\n");
         }
-        else if (myid == 1) 
+        else if (myid == 1)
         {
             printf("(inetd) Connection request to cube service\n");
         }
 
         // Fork a child process to handle the square request
         pid_t pid = fork();
-
 
         if (pid == 0)
         {
@@ -53,9 +52,9 @@ void *listenPorts(idAndSocket *vargp)
             char socket_fd_str[10];
             sprintf(socket_fd_str, "%d", clientSocket);
 
-            if(myid == 0) 
+            if (myid == 0)
             {
-                execl("./square", "square", socket_fd_str, NULL);           
+                execl("./square", "square", socket_fd_str, NULL);
             }
             else if (myid == 1)
             {
@@ -77,7 +76,7 @@ void *listenPorts(idAndSocket *vargp)
 int main()
 {
     int squarePort = 5010;
-    int cubePort = 5020;    
+    int cubePort = 5020;
 
     int squareSocket, cubeSocket;
     struct sockaddr_in squareAddress, cubeAddress;
@@ -133,7 +132,6 @@ int main()
     pthread_t tid[2];
     idAndSocket idsAndSockets[2];
 
-
     for (i = 0; i < 2; i++)
     {
         idsAndSockets[i].id = i;
@@ -151,7 +149,6 @@ int main()
     {
         pthread_join(tid[i], NULL);
     }
-
 
     close(squareSocket);
     close(cubeSocket);

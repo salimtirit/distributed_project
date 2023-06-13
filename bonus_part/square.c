@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 1024
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     int socket_fd = atoi(argv[1]);
 
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     snprintf(response, BUFFER_SIZE, "%d", square);
     write(socket_fd, response, strlen(response));
 
-    printf("(square) Request=%d\n",number);
+    printf("(square) Request=%d\n", number);
     printf("(square) Reply sent as %d. Terminating..\n", square);
 
     return 0;

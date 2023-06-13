@@ -44,7 +44,8 @@ int main(int argc, char *argv[])
     send(client_socket, buffer, strlen(buffer), 0);
 
     ssize_t cli_id_back_size = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (cli_id_back_size < 0) {
+    if (cli_id_back_size < 0)
+    {
         perror("Error receiving client ID from server");
         exit(1);
     }
@@ -79,10 +80,11 @@ int main(int argc, char *argv[])
         if (square < 0)
         {
             printf("%s\n", "    Will terminate");
-        } else {
-            printf("    Result: %d\n", square);            
         }
-
+        else
+        {
+            printf("    Result: %d\n", square);
+        }
 
         if (num < 0)
         {
