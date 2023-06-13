@@ -4,72 +4,111 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <arpa/inet.h>
 
-void handleClient(int clientSocket, const char *serverName);
 
-int main()
-{
+int main() {
     int squarePort = 5010;
     int cubePort = 5020;
 
-    int inetdSocket;
-    struct sockaddr_in inetdAddress;
+    int squareSocket, cubeSocket;
+    struct sockaddr_in squareAddress, cubeAddress;
 
-    // Create socket for the inetd server
-    inetdSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (inetdSocket < 0)
-    {
+    // Create socket for the square server
+    squareSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (squareSocket < 0) {
         perror("Socket creation failed");
         exit(1);
     }
 
-    // Prepare the address structure for the inetd server
-    inetdAddress.sin_family = AF_INET;
-    inetdAddress.sin_addr.s_addr = INADDR_ANY;
-    inetdAddress.sin_port = htons(squarePort); // Use squarePort as the default port for inetd
+    // Prepare the address structure for the square server
+    squareAddress.sin_family = AF_INET;
+    squareAddress.sin_addr.s_addr = INADDR_ANY;
+    squareAddress.sin_port = htons(squarePort);
 
-    // Bind the inetd socket to the squarePort
-    if (bind(inetdSocket, (struct sockaddr *)&inetdAddress, sizeof(inetdAddress)) < 0)
-    {
+    // Bind the square socket to the specified port
+    if (bind(squareSocket, (struct sockaddr *)&squareAddress, sizeof(squareAddress)) < 0) {
         perror("Binding failed");
         exit(1);
     }
 
-    // Listen for connections on the inetd socket
-    listen(inetdSocket, 1);
+    // Create socket for the cube server
+    cubeSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (cubeSocket < 0) {
+        perror("Socket creation failed");
+        exit(1);
+    }
+
+    // Prepare the address structure for the cube server
+    cubeAddress.sin_family = AF_INET;
+    cubeAddress.sin_addr.s_addr = INADDR_ANY;
+    cubeAddress.sin_port = htons(cubePort);
+
+    // Bind the cube socket to the specified port
+    if (bind(cubeSocket, (struct sockaddr *)&cubeAddress, sizeof(cubeAddress)) < 0) {
+        perror("Binding failed");
+        exit(1);
+    }
+
+    // Listen for connections on both ports
+    listen(squareSocket, 1);
+    listen(cubeSocket, 1);
 
     printf("(inetd) inetd has started\n");
-    printf("(inetd) Waiting for connections on port %d\n", squarePort);
+    printf("(inetd) Waiting for ports %d & %d\n", squarePort, cubePort);
 
-    while (1)
-    {
+    while (1) {
         int clientSocket;
         struct sockaddr_in clientAddress;
         socklen_t clientLength = sizeof(clientAddress);
 
         // Accept incoming connections
-        clientSocket = accept(inetdSocket, (struct sockaddr *)&clientAddress, &clientLength);
-        if (clientSocket < 0)
-        {
+        // Accept incoming connections for the square server
+        clientSocket = accept(squareSocket, (struct sockaddr *)&clientAddress, &clientLength);
+        if (clientSocket < 0) {
             perror("Accept failed");
             exit(1);
         }
 
-        printf("(inetd) Connection request received\n");
+        printf("(inetd) Connection request to square service\n");
 
-        // Determine which server to spawn based on the client's requested port
-        if (clientAddress.sin_port == htons(squarePort))
-        {
-            handleClient(clientSocket, "square");
+        // Fork a child process to handle the square request
+        pid_t pid = fork();
+
+        if (pid == 0) {
+            // Child process
+            close(squareSocket);
+            handleSquare(clientSocket);
+            exit(0);
+        } else if (pid < 0) {
+            perror("Fork failed");
+            exit(1);
         }
-        else if (clientAddress.sin_port == htons(cubePort))
-        {
-            handleClient(clientSocket, "cube");
+
+        // Accept incoming connections for the cube server
+        clientSocket = accept(cubeSocket, (struct sockaddr *)&clientAddress, &clientLength);
+        if (clientSocket < 0) {
+            perror("Accept failed");
+            exit(1);
+        }
+
+        printf("(inetd) Connection request to cube service\n");
+
+        // Fork a child process to handle the cube request
+        pid = fork();
+
+        if (pid == 0) {
+            // Child process
+            close(cubeSocket);
+            handleCube(clientSocket);
+            exit(0);
+        } else if (pid < 0) {
+            perror("Fork failed");
+            exit(1);
         }
     }
 
-    close(inetdSocket);
+    close(squareSocket);
+    close(cubeSocket);
 
     return 0;
 }
