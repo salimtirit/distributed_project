@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     // Receive and display the server's reply
     memset(buffer, 0, sizeof(buffer));
     read(clientSocket, buffer, sizeof(buffer));
-    printf("Result: %s\n", buffer);
+    printf("    Result: %s\n", buffer);
 
     close(clientSocket);
 

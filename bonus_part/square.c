@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     write(socket_fd, response, strlen(response));
 
     printf("(square) Request=%d\n", number);
-    printf("(square) Reply sent as %d. Terminating..\n", square);
+    printf("(square) Reply sent as %d. Terminating...\n", square);
 
     return 0;
 }
