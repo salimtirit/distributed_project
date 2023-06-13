@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf("    Result: %d\n", square);
+            printf("\tResult: %d\n", square);
         }
 
         if (num < 0)
