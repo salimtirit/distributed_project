@@ -6,7 +6,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-void spawnServer(const char *serverName, int clientSocket);
+void handleClient(int clientSocket, const char *serverName);
 
 int main()
 {
@@ -27,26 +27,20 @@ int main()
     // Prepare the address structure for the inetd server
     inetdAddress.sin_family = AF_INET;
     inetdAddress.sin_addr.s_addr = INADDR_ANY;
-    inetdAddress.sin_port = 0;
+    inetdAddress.sin_port = htons(squarePort); // Use squarePort as the default port for inetd
 
-    // Bind the inetd socket to any available port
+    // Bind the inetd socket to the squarePort
     if (bind(inetdSocket, (struct sockaddr *)&inetdAddress, sizeof(inetdAddress)) < 0)
     {
         perror("Binding failed");
         exit(1);
     }
 
-    // Get the dynamically assigned port number
-    struct sockaddr_in socketAddress;
-    socklen_t addressLength = sizeof(socketAddress);
-    getsockname(inetdSocket, (struct sockaddr *)&socketAddress, &addressLength);
-    int inetdPort = ntohs(socketAddress.sin_port);
-
     // Listen for connections on the inetd socket
     listen(inetdSocket, 1);
 
     printf("(inetd) inetd has started\n");
-    printf("(inetd) Waiting for ports %d & %d\n", squarePort, cubePort);
+    printf("(inetd) Waiting for connections on port %d\n", squarePort);
 
     while (1)
     {
@@ -67,11 +61,11 @@ int main()
         // Determine which server to spawn based on the client's requested port
         if (clientAddress.sin_port == htons(squarePort))
         {
-            spawnServer("square", clientSocket);
+            handleClient(clientSocket, "square");
         }
         else if (clientAddress.sin_port == htons(cubePort))
         {
-            spawnServer("cube", clientSocket);
+            handleClient(clientSocket, "cube");
         }
     }
 
@@ -80,7 +74,7 @@ int main()
     return 0;
 }
 
-void spawnServer(const char *serverName, int clientSocket)
+void handleClient(int clientSocket, const char *serverName)
 {
     pid_t pid = fork();
 
