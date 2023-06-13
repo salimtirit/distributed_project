@@ -7,78 +7,67 @@
 #include <pthread.h>
 #include <unistd.h>
 
-void *listenPorts(void *vargp)
+typedef struct s_idAndSocket
 {
-    int myid = *(int *)vargp;
+    int id;
+    int socket;
+} idAndSocket;
 
-    printf("Printing GeeksQuiz from Thread %d\n", myid);
+void *listenPorts(idAndSocket *vargp)
+{
+    idAndSocket myIdAndSocket = *(idAndSocket *)vargp;
+    int myid = myIdAndSocket.id;
+    int socket = myIdAndSocket.socket;
 
     int clientSocket;
     struct sockaddr_in clientAddress;
     socklen_t clientLength = sizeof(clientAddress);
     while (1)
     {
+        // Accept incoming connections for the square server
+        clientSocket = accept(socket, (struct sockaddr *)&clientAddress, &clientLength);
+        if (clientSocket < 0)
+        {
+            perror("Accept failed");
+            exit(1);
+        }
+
         if (myid == 0)
         {
-
-            // Accept incoming connections for the square server
-            clientSocket = accept(squareSocket, (struct sockaddr *)&clientAddress, &clientLength);
-            if (clientSocket < 0)
-            {
-                perror("Accept failed");
-                exit(1);
-            }
-
             printf("(inetd) Connection request to square service\n");
-
-            // Fork a child process to handle the square request
-            pid_t pid = fork();
-
-            if (pid == 0)
-            {
-                // Child process
-                close(squareSocket);
-                // handleSquare(clientSocket);
-                exit(0);
-            }
-            else if (pid < 0)
-            {
-                perror("Fork failed");
-                exit(1);
-            }
         }
-        else if (myid == 1)
+        else if (myid == 1) 
         {
-
-            // Accept incoming connections for the cube server
-            clientSocket = accept(cubeSocket, (struct sockaddr *)&clientAddress, &clientLength);
-            if (clientSocket < 0)
-            {
-                perror("Accept failed");
-                exit(1);
-            }
-
             printf("(inetd) Connection request to cube service\n");
-
-            // Fork a child process to handle the cube request
-            pid_t pid = fork();
-
-            if (pid == 0)
-            {
-                // Child process
-                close(cubeSocket);
-                // handleCube(clientSocket);
-                exit(0);
-            }
-            else if (pid < 0)
-            {
-                perror("Fork failed");
-                exit(1);
-            }
         }
-        else
+
+        // Fork a child process to handle the square request
+        pid_t pid = fork();
+
+
+        if (pid == 0)
         {
-            printf("There is a problem. \n");
+            // Child process
+            close(socket);
+
+            char socket_fd_str[10];
+            sprintf(socket_fd_str, "%d", clientSocket);
+
+            if(myid == 0) 
+            {
+                execl("./square", "square", socket_fd_str, NULL);           
+            }
+            else if (myid == 1)
+            {
+                execl("./cube", "cube", socket_fd_str, NULL);
+            }
+            // handleSquare(clientSocket);
+            exit(0);
+        }
+        else if (pid < 0)
+        {
+            perror("Fork failed");
+            exit(1);
         }
     }
 
@@ -88,7 +77,7 @@ void *listenPorts(void *vargp)
 int main()
 {
     int squarePort = 5010;
-    int cubePort = 5020;
+    int cubePort = 5020;    
 
     int squareSocket, cubeSocket;
     struct sockaddr_in squareAddress, cubeAddress;
@@ -140,15 +129,10 @@ int main()
     printf("(inetd) inetd has started\n");
     printf("(inetd) Waiting for ports %d & %d\n", squarePort, cubePort);
 
-    struct idAndSocket
-    {
-        int id;
-        int socket;
-    };
-
     int i;
     pthread_t tid[2];
-    int idsAndSockets[2];
+    idAndSocket idsAndSockets[2];
+
 
     for (i = 0; i < 2; i++)
     {
@@ -161,34 +145,16 @@ int main()
         {
             idsAndSockets[i].socket = cubeSocket;
         }
-        pthread_create(&tid[i], NULL, listenPorts, &threadIDs[i]);
+        pthread_create(&tid[i], NULL, listenPorts, &idsAndSockets[i]);
     }
+    for (i = 0; i < 2; i++)
+    {
+        pthread_join(tid[i], NULL);
+    }
+
 
     close(squareSocket);
     close(cubeSocket);
 
     return 0;
-}
-
-void handleClient(int clientSocket, const char *serverName)
-{
-    pid_t pid = fork();
-
-    if (pid == 0)
-    {
-        // Child process
-        close(0);
-        dup(clientSocket);
-        close(clientSocket);
-
-        // Execute the appropriate server program
-        execl(serverName, serverName, NULL);
-
-        exit(0);
-    }
-    else if (pid < 0)
-    {
-        perror("Fork failed");
-        exit(1);
-    }
 }

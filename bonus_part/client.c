@@ -45,22 +45,19 @@ int main(int argc, char *argv[])
 
     char buffer[1024];
 
-    while (1)
-    {
-        printf("Enter request: ");
-        fgets(buffer, sizeof(buffer), stdin);
+    printf("Enter request: ");
+    fgets(buffer, sizeof(buffer), stdin);
 
-        // Remove newline character from the input
-        buffer[strcspn(buffer, "\n")] = '\0';
+    // Remove newline character from the input
+    buffer[strcspn(buffer, "\n")] = '\0';
 
-        // Send the request to the server
-        write(clientSocket, buffer, strlen(buffer) + 1);
+    // Send the request to the server
+    write(clientSocket, buffer, strlen(buffer) + 1);
 
-        // Receive and display the server's reply
-        memset(buffer, 0, sizeof(buffer));
-        read(clientSocket, buffer, sizeof(buffer));
-        printf("Result: %s\n", buffer);
-    }
+    // Receive and display the server's reply
+    memset(buffer, 0, sizeof(buffer));
+    read(clientSocket, buffer, sizeof(buffer));
+    printf("Result: %s\n", buffer);
 
     close(clientSocket);
 

@@ -5,83 +5,34 @@
 #include <netinet/in.h>
 #include <string.h>
 
-void handleCube(int clientSocket)
+#define BUFFER_SIZE 1024
+
+int main(int argc, char* argv[])
 {
-    char buffer[1024];
-    int num;
+    int socket_fd = atoi(argv[1]);
 
-    memset(buffer, 0, sizeof(buffer));
+    char buffer[BUFFER_SIZE];
+    ssize_t num_bytes;
 
-    // Read the request from the client
-    if (read(clientSocket, buffer, sizeof(buffer)) > 0)
+    num_bytes = read(socket_fd, buffer, BUFFER_SIZE - 1);
+
+    if (num_bytes < 0)
     {
-        num = atoi(buffer);
-        int result = num * num * num;
-
-        // Send the cube result back to the client
-        snprintf(buffer, sizeof(buffer), "%d", result);
-        write(clientSocket, buffer, strlen(buffer) + 1);
-
-        printf("(cube) Request=%d\n", num);
-        printf("(cube) Reply sent as %d. Terminating...\n", result);
+        perror("Socket read failure.");
+        exit(EXIT_FAILURE);
     }
 
-    close(clientSocket);
+    buffer[num_bytes] = '\0';
+
+    int number = atoi(buffer);
+    int cube = number * number * number;
+
+    char response[BUFFER_SIZE];
+    snprintf(response, BUFFER_SIZE, "%d", cube);
+    write(socket_fd, response, strlen(response));
+
+    printf("(cube) Request=%d\n",number);
+    printf("(cube) Reply sent as %d. Terminating..\n", cube);
+
+    return 0;
 }
-
-int main()
-{
-    int port = 5020;
-
-    int serverSocket;
-    struct sockaddr_in serverAddress;
-
-    // Create socket for the server
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket < 0)
-    {
-        perror("Socket creation failed");
-        exit(1);
-
-        // Prepare the address structure for the server
-        serverAddress.sin_family = AF_INET;
-        serverAddress.sin_addr.s_addr = INADDR_ANY;
-        serverAddress.sin_port = htons(port);
-
-        // Bind the server socket to the specified port
-        if (bind(serverSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
-        {
-            perror("Binding failed");
-            exit(1);
-        }
-
-        // Listen for connections on the port
-        listen(serverSocket, 1);
-
-        printf("(cube) cube server has started\n");
-        printf("(cube) Waiting for connections on port %d\n", port);
-
-        while (1)
-        {
-            int clientSocket;
-            struct sockaddr_in clientAddress;
-            socklen_t clientLength = sizeof(clientAddress);
-
-            // Accept incoming connections
-            clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLength);
-            if (clientSocket < 0)
-            {
-                perror("Accept failed");
-                exit(1);
-            }
-
-            printf("(cube) Connection request received\n");
-
-            // Handle the request
-            handleCube(clientSocket);
-        }
-
-        close(serverSocket);
-
-        return 0;
-    }
